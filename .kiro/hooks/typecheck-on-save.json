@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Typecheck on save",
+      "description": "When a TypeScript file is saved, run the type checker so mistakes are caught immediately.",
+      "trigger": "PostFileSave",
+      "matcher": "(src/.*[^/]*\\.ts$|src/.*[^/]*\\.tsx$)",
+      "action": {
+        "type": "agent",
+        "prompt": "A TypeScript file was just edited. Run `npm run typecheck` and fix any errors you find without changing behavior."
+      },
+      "enabled": true
+    }
+  ]
+}
