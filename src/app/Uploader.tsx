@@ -178,7 +178,7 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
                   <>
                     <p className="error" style={{ marginTop: 4 }}>
                       Not Uncle enough! Take a more classic Uncle-style photo (try a lower angle, serious face,
-                      or indoor flash) and try again. Need {UNCLE_THRESHOLD}+ to publish.
+                      proud pose, or awkward framing) and try again. Need {UNCLE_THRESHOLD}+ to publish.
                     </p>
                     {analysis.tips.length > 0 && (
                       <ul className="tips">
