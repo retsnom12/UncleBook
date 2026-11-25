@@ -8,7 +8,7 @@ pick file -> shrink (canvas) --------->  POST /api/analyze                      
                                           rate limit, validate JPEG  --------->  (score + safety)
                                           sign token(hash, score)
 <------------- analysis + token --------
-[optional] Uncle-ify filter (canvas) -> re-analyze
+Share or emoji editor (canvas) -> re-analyze the flattened JPEG
 Share --------------------------------> POST /api/photos
                                           verify token == sha256(image)
                                           upload ---------------------------->  Supabase Storage
@@ -20,7 +20,7 @@ Like ----------------------------------> POST /api/photos/:id/like  (RPC increme
 ## Key decisions
 - **No login:** all DB access goes through API routes with the service role key; RLS is on with no public policies.
 - **Signed analysis token:** prevents posting un-analyzed or swapped images without needing accounts.
-- **Client-side resize + filter:** zero server image processing, works on weak devices, cheap hosting.
+- **Client-side resize + emoji decoration:** zero server image processing, works on weak devices, cheap hosting.
 - **Fail soft:** AI down means posting is paused with a clear message, but the feed keeps working.
 - **Cursor pagination** on `created_at` keeps the feed fast as it grows.
 

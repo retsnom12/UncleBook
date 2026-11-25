@@ -7,10 +7,11 @@
 - [x] 5. API: POST /api/analyze
 - [x] 6. API: GET and POST /api/photos (pagination, signed-token check, orphan cleanup)
 - [x] 7. API: POST /api/photos/:id/like
-- [x] 8. Browser image helpers: resize, JPEG encode under budget, Uncle-ify filter
+- [x] 8. Browser image helpers: resize and JPEG encode under budget
 - [x] 9. UI: feed with pagination, likes, empty and error states
-- [x] 10. UI: uploader with score meter, traits, tips, retake, Uncle-ify, share
-- [ ] 11. Deploy to Vercel and run the Supabase schema
-- [ ] 12. Load test the feed and upload flow with a handful of simultaneous users
-- [ ] 13. Property-based tests for token signing and JPEG validation (fast-check)
-- [ ] 14. Record the 3-minute demo and write the Kiro usage write-up
+- [x] 10. UI: uploader with score meter, traits, tips, retake and share
+- [x] 11. UI: canvas emoji editor with Uncle Favorites and general picker
+- [ ] 12. Deploy to Vercel and run the Supabase schema
+- [ ] 13. Load test the feed and upload flow with a handful of simultaneous users
+- [ ] 14. Property-based tests for token signing and JPEG validation (fast-check)
+- [ ] 15. Record the 3-minute demo and write the Kiro usage write-up

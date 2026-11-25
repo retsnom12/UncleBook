@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { canvasToJpegDataUrl, fileToCanvas, uncleify } from "@/lib/image-client";
+import { canvasToJpegDataUrl, fileToCanvas } from "@/lib/image-client";
 import { UNCLE_THRESHOLD, type Analysis, type Photo } from "@/lib/types";
+import EmojiEditor from "./EmojiEditor";
 
 type Stage = "idle" | "analyzing" | "result" | "sharing";
 
@@ -14,8 +15,7 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [uncleified, setUncleified] = useState(false);
-  const [prevScore, setPrevScore] = useState<number | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   function reset() {
     setStage("idle");
@@ -24,17 +24,15 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
     setAnalysis(null);
     setCaption("");
     setError(null);
-    setUncleified(false);
-    setPrevScore(null);
+    setEditorOpen(false);
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  async function analyze(c: HTMLCanvasElement) {
+  async function analyze(c: HTMLCanvasElement, preserveResultOnFailure = false): Promise<boolean> {
     setStage("analyzing");
     setError(null);
     try {
       const image = await canvasToJpegDataUrl(c);
-      setPreview(image);
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -43,14 +41,17 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
       const data = await res.json().catch(() => null);
       if (!res.ok || !data) {
         setError(data?.error ?? "Could not analyze the photo.");
-        setStage(analysis ? "result" : "idle");
-        return;
+        setStage(preserveResultOnFailure ? "result" : "idle");
+        return false;
       }
+      setPreview(image);
       setAnalysis(data as Analysis);
       setStage("result");
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
-      setStage(analysis ? "result" : "idle");
+      setStage(preserveResultOnFailure ? "result" : "idle");
+      return false;
     }
   }
 
@@ -62,9 +63,11 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
       return;
     }
     setError(null);
-    setUncleified(false);
-    setPrevScore(null);
+    setStage("analyzing");
+    setEditorOpen(false);
     setAnalysis(null);
+    setCanvas(null);
+    setPreview(null);
     try {
       const c = await fileToCanvas(file);
       setCanvas(c);
@@ -75,13 +78,9 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
     }
   }
 
-  async function onUncleify() {
-    if (!canvas || !analysis) return;
-    setPrevScore(analysis.score);
-    const filtered = uncleify(canvas);
-    setCanvas(filtered);
-    setUncleified(true);
-    await analyze(filtered);
+  async function onEmojiApply(editedCanvas: HTMLCanvasElement) {
+    setEditorOpen(false);
+    if (await analyze(editedCanvas, true)) setCanvas(editedCanvas);
   }
 
   async function onShare() {
@@ -129,10 +128,29 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
           </>
         )}
 
-        {preview && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className="preview" src={preview} alt="Your photo preview" style={{ marginBottom: 8 }} />
-        )}
+        {editorOpen && canvas ? (
+          <EmojiEditor
+            image={canvas}
+            onCancel={() => setEditorOpen(false)}
+            onApply={onEmojiApply}
+          />
+        ) : preview ? (
+          <div className="preview-wrap">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="preview" src={preview} alt="Your photo preview" />
+            {passed && stage !== "analyzing" && (
+              <button
+                type="button"
+                className="emoji-edit-button"
+                onClick={() => setEditorOpen(true)}
+                aria-label="Decorate photo with emojis"
+                title="Add 2011-style emoji stickers"
+              >
+                ✏️
+              </button>
+            )}
+          </div>
+        ) : null}
 
         {stage === "analyzing" && <p className="spinner">🧐 The Uncle Judge is squinting at your photo…</p>}
 
@@ -144,9 +162,6 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
               <>
                 <div>
                   <strong>Uncle score: {analysis.score}/100</strong>
-                  {prevScore !== null && (
-                    <span className="muted"> (was {prevScore} before the uncle filter)</span>
-                  )}
                 </div>
                 <div className="meter">
                   <div style={{ width: `${analysis.score}%`, background: color }} />
@@ -162,7 +177,8 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
                 {!passed && (
                   <>
                     <p className="error" style={{ marginTop: 4 }}>
-                      Not uncle enough yet (need {UNCLE_THRESHOLD}+). Retake it, or let the filter help.
+                      Not Uncle enough! Take a more classic Uncle-style photo (try a lower angle, serious face,
+                      or indoor flash) and try again. Need {UNCLE_THRESHOLD}+ to publish.
                     </p>
                     {analysis.tips.length > 0 && (
                       <ul className="tips">
@@ -189,11 +205,6 @@ export default function Uploader({ onShared }: { onShared: (p: Photo) => void })
               {passed && (
                 <button className="btn" disabled={busy} onClick={onShare}>
                   {stage === "sharing" ? "Sharing…" : "Share"}
-                </button>
-              )}
-              {analysis.safe && !passed && !uncleified && (
-                <button className="btn" disabled={busy} onClick={onUncleify}>
-                  🧓 Uncle-ify it
                 </button>
               )}
               <button className="btn secondary" disabled={busy} onClick={() => fileRef.current?.click()}>

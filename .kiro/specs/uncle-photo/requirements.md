@@ -19,17 +19,18 @@ Anonymous, public photo sharing where an AI judge gates each upload by "uncle-ne
 3. IF the photo is unsafe (nudity, gore, hate, minors as main subject) THEN the system SHALL refuse to share it.
 4. IF the AI is unavailable THEN the system SHALL show a friendly message and SHALL NOT allow posting.
 
-### 3. Retake or Uncle-ify
-**User story:** As a sharer with a low score, I want help passing.
-1. IF score < 60 THEN the system SHALL show tips, a Retake button and an "Uncle-ify" button.
-2. WHEN the user runs Uncle-ify THEN the system SHALL apply the filter in the browser and re-analyze the result.
-3. The system SHALL show the score before and after the filter.
+### 3. Retake low-scoring photos
+**User story:** As a sharer with a low score, I want clear tips for taking a more Uncle-style photo.
+1. IF score < 60 THEN the system SHALL block publishing and show a humorous retake message, judge tips and a Retake button.
 
 ### 4. Share
 **User story:** As a sharer, I want to publish a passing photo with an optional caption.
 1. IF score >= 60 and the photo is safe THEN the system SHALL enable Share and a caption field (max 140 chars).
 2. The system SHALL accept a post only with a valid, unexpired, server-signed token bound to the exact image bytes.
 3. WHEN sharing succeeds THEN the new photo SHALL appear at the top of the feed immediately.
+4. A passing photo SHALL be publishable as-is or decorated with client-side emoji stickers.
+5. The emoji editor SHALL allow choosing, positioning, resizing and removing stickers, then flatten them into the JPEG before re-analysis and publishing.
+6. The editor SHALL show the Uncle Favorites set before the general emoji picker.
 
 ### 5. Like
 1. WHEN a visitor likes a photo THEN the count SHALL increase atomically.

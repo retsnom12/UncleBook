@@ -3,7 +3,8 @@
 ## What this is
 UncleBook resurrects the "Facebook uncle photo" (2008-2012): proud, stiff, flash-blasted,
 awkwardly framed snapshots. Anyone can share photos and see everyone else's. Before a photo is
-shared, an AI judge scores how "uncle" it is. Low score: retake it or run the Uncle-ify filter.
+shared, an AI judge scores how "uncle" it is. Low score: retake it with a more classic Uncle-style pose;
+passing photos can optionally be decorated with nostalgic emoji stickers before publishing.
 
 ## Hard rules
 - No accounts, no login. Anonymous and public.

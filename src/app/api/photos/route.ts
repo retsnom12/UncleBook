@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Photo does not match its analysis." }, { status: 400 });
     }
     if (payload.score < UNCLE_THRESHOLD) {
-      return NextResponse.json({ error: "Not uncle enough yet. Retake or uncle-ify it first." }, { status: 400 });
+      return NextResponse.json({ error: "Not uncle enough yet. Retake with a more classic Uncle-style photo." }, { status: 400 });
     }
 
     const caption =
