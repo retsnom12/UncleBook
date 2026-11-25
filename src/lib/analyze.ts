@@ -1,7 +1,8 @@
+import { createHash } from "crypto";
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import type { Trait } from "./types";
 
-export type RawAnalysis = {
+export type AnalysisResult = {
   safe: boolean;
   score: number;
   verdict: string;
@@ -9,16 +10,17 @@ export type RawAnalysis = {
   tips: string[];
 };
 
+type RawAnalysis = AnalysisResult;
+
 const SYSTEM = `You are the Chief Judge of "UncleBook", a joke social network that celebrates the
 legendary "Facebook uncle photo" (2008-2012 era): a proud, slightly awkward snapshot.
 
-Score how much the photo looks like a classic Facebook uncle photo, 0-100, based only on these traits
-(set hit=true/false for each):
-- Classic uncle pose (stiff, thumbs-up, hands on hips, or standing proudly)
-- Facial expression (serious, proud, or awkwardly cheerful)
-- Camera angle (low or otherwise distinctly uncle-style)
-- Framing (intentionally awkward, tilted, or tightly cropped)
-- Authentic 2008-2012 uncle-photo vibe
+Calculate uncleScore using this strict rubric. Assign an integer from 0 to 25 to each criterion,
+then sum all four values; uncleScore must equal that sum exactly. Do not choose an arbitrary total:
+- cameraAngle (0-25): how distinctly uncle-style the camera angle is
+- facialExpressionAndPosture (0-25): the expression and proud, stiff, or awkward posture
+- framingAndComposition (0-25): the uncle-style framing and composition
+- authenticUncleVibe (0-25): how strongly the photo feels like an authentic 2008-2012 uncle photo
 Do not score image quality, lighting, or visual effects. Keep every trait and retake tip focused on
 pose, facial expression, camera angle, framing, or authentic vibe.
 
@@ -26,14 +28,14 @@ Also decide "safe": false if the image contains nudity, sexual content, gore, vi
 or an apparent child as the main subject. Otherwise true.
 
 Reply with ONLY a JSON object, no markdown, in exactly this shape:
-{"safe":true,"score":72,"verdict":"<=60 chars, funny, warm, never cruel>",
+{"safe":true,"score":72,
+ "rubric":{"cameraAngle":18,"facialExpressionAndPosture":20,"framingAndComposition":16,"authenticUncleVibe":18},
+ "verdict":"<=60 chars, funny, warm, never cruel>",
  "traits":[{"label":"Stiff thumbs-up pose","hit":true}, ... 5 items],
  "tips":["max 3 short, concrete, funny retake tips; empty array if score>=60"]}`;
 
-function clamp(n: unknown, lo: number, hi: number): number {
-  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
-  return Math.min(hi, Math.max(lo, Math.round(v)));
-}
+const ANALYSIS_CACHE_LIMIT = 100;
+const analysisCache = new Map<string, AnalysisResult>();
 
 /** Strip markdown code fences that some model versions wrap around JSON output. */
 function stripFences(text: string): string {
@@ -48,6 +50,15 @@ function parse(text: string): RawAnalysis | null {
   if (start < 0 || end <= start) return null;
   try {
     const j = JSON.parse(cleaned.slice(start, end + 1));
+    const rubric = j.rubric;
+    const rubricScores = [
+      rubric?.cameraAngle,
+      rubric?.facialExpressionAndPosture,
+      rubric?.framingAndComposition,
+      rubric?.authenticUncleVibe,
+    ];
+    if (rubricScores.some((score) => !Number.isInteger(score) || score < 0 || score > 25)) return null;
+
     const traits: Trait[] = Array.isArray(j.traits)
       ? j.traits
           .filter((t: any) => t && typeof t.label === "string")
@@ -59,7 +70,7 @@ function parse(text: string): RawAnalysis | null {
       : [];
     return {
       safe: j.safe !== false,
-      score: clamp(j.score, 0, 100),
+      score: rubricScores.reduce((total, score) => total + score, 0),
       verdict: typeof j.verdict === "string" ? j.verdict.slice(0, 80) : "",
       traits,
       tips,
@@ -134,6 +145,8 @@ async function callGroq(jpeg: Buffer): Promise<RawAnalysis | null> {
         },
         body: JSON.stringify({
           model: modelName,
+          temperature: 0,
+          seed: 42,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: SYSTEM },
@@ -194,6 +207,7 @@ async function callGemini(jpeg: Buffer): Promise<RawAnalysis | null> {
       {
         model: name,
         systemInstruction: SYSTEM,
+        generationConfig: { temperature: 0 },
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT,        threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,       threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -238,10 +252,18 @@ export async function analyzeImage(jpeg: Buffer): Promise<RawAnalysis | null> {
     throw new Error("Missing API key: set GROQ_API_KEY or GEMINI_API_KEY");
   }
 
+  const imageHash = createHash("sha256").update(jpeg).digest("hex");
+  const cached = analysisCache.get(imageHash);
+  if (cached) {
+    analysisCache.delete(imageHash);
+    analysisCache.set(imageHash, cached);
+    return cached;
+  }
+
   if (process.env.GROQ_API_KEY) {
     try {
       const result = await callGroq(jpeg);
-      if (result) return result;
+      if (result) return cacheAnalysis(imageHash, result);
     } catch (err) {
       console.error("[analyze] Groq model call failed:", err);
     }
@@ -250,11 +272,20 @@ export async function analyzeImage(jpeg: Buffer): Promise<RawAnalysis | null> {
   if (process.env.GEMINI_API_KEY) {
     try {
       const result = await callGemini(jpeg);
-      if (result) return result;
+      if (result) return cacheAnalysis(imageHash, result);
     } catch (err) {
       console.error("[analyze] Gemini model call failed:", err);
     }
   }
 
   return null;
+}
+
+function cacheAnalysis(imageHash: string, result: AnalysisResult): AnalysisResult {
+  if (analysisCache.size >= ANALYSIS_CACHE_LIMIT && !analysisCache.has(imageHash)) {
+    const oldestHash = analysisCache.keys().next().value;
+    if (oldestHash !== undefined) analysisCache.delete(oldestHash);
+  }
+  analysisCache.set(imageHash, result);
+  return result;
 }
