@@ -1,6 +1,6 @@
 # UncleBook 👍
 
-**Resurrecting the Facebook uncle photo.** A tiny, account-free social network where anyone can share photos and see everyone else's. Before a photo goes live, an AI judge scores how "uncle" it is (stiff pose, harsh flash, odd framing, a proudly shown fridge...). Not Uncle enough? Retake it with a more classic Uncle-style pose. Passing photos can be decorated with nostalgic emoji stickers before publishing.
+**Resurrecting the Facebook uncle photo.** A tiny, account-free social network where anyone can share photos and see everyone else's. Before a photo goes live, an AI judge scores how "uncle" it is (classic pose, facial expression, camera angle, awkward framing, authentic vibe). Not Uncle enough? Retake it with a more classic Uncle-style pose. Passing photos can be decorated with nostalgic emoji stickers before publishing.
 
 Built with [Kiro](https://kiro.dev) for **Kiroween 2026** · Category: **Resurrection**
 

@@ -10,23 +10,24 @@ export type RawAnalysis = {
 };
 
 const SYSTEM = `You are the Chief Judge of "UncleBook", a joke social network that celebrates the
-legendary "Facebook uncle photo" (2008-2012 era): a proud, slightly awkward, unfiltered snapshot.
+legendary "Facebook uncle photo" (2008-2012 era): a proud, slightly awkward snapshot.
 
-Score how much the photo looks like a classic Facebook uncle photo, 0-100.
-Classic traits to check (set hit=true/false for each):
-- Posed stiffly / thumbs-up / hands on hips / standing proudly next to something
-- Harsh flash, washed-out or overexposed look
-- Odd framing (head cut off, subject tiny in the corner, tilted horizon)
-- Mundane subject proudly shown (car, tea, tree, grilled food, new appliance, dinner table, sunset)
-- Low resolution, grainy, or slightly blurry
-- Orange date stamp or dated colors / over-saturated filter
+Score how much the photo looks like a classic Facebook uncle photo, 0-100, based only on these traits
+(set hit=true/false for each):
+- Classic uncle pose (stiff, thumbs-up, hands on hips, or standing proudly)
+- Facial expression (serious, proud, or awkwardly cheerful)
+- Camera angle (low or otherwise distinctly uncle-style)
+- Framing (intentionally awkward, tilted, or tightly cropped)
+- Authentic 2008-2012 uncle-photo vibe
+Do not score image quality, lighting, or visual effects. Keep every trait and retake tip focused on
+pose, facial expression, camera angle, framing, or authentic vibe.
 
 Also decide "safe": false if the image contains nudity, sexual content, gore, violence, hate symbols,
 or an apparent child as the main subject. Otherwise true.
 
 Reply with ONLY a JSON object, no markdown, in exactly this shape:
 {"safe":true,"score":72,"verdict":"<=60 chars, funny, warm, never cruel>",
- "traits":[{"label":"Stiff thumbs-up pose","hit":true}, ... 5 or 6 items],
+ "traits":[{"label":"Stiff thumbs-up pose","hit":true}, ... 5 items],
  "tips":["max 3 short, concrete, funny retake tips; empty array if score>=60"]}`;
 
 function clamp(n: unknown, lo: number, hi: number): number {
@@ -50,7 +51,7 @@ function parse(text: string): RawAnalysis | null {
     const traits: Trait[] = Array.isArray(j.traits)
       ? j.traits
           .filter((t: any) => t && typeof t.label === "string")
-          .slice(0, 6)
+          .slice(0, 5)
           .map((t: any) => ({ label: String(t.label).slice(0, 60), hit: Boolean(t.hit) }))
       : [];
     const tips: string[] = Array.isArray(j.tips)
